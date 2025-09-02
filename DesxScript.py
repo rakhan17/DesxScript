@@ -66,7 +66,7 @@ TITLE_ART = f"""
 ██████╔╝███████╗███████║██╔╝ ██╗███████║╚██████╗██║  ██║██║██║        ██║   
 ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝╚═╝        ╚═╝   
 {Colors.RESET}{Colors.CYAN}{'versi 12.3.24'.center(88)}
-{'dibuat oleh MaskGladity'.center(88)}{Colors.RESET}
+{'dibuat oleh rkhnatthaya'.center(88)}{Colors.RESET}
 """
 
 # --- ANIMASI MATRIX ---
