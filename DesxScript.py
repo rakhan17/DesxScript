@@ -62,11 +62,11 @@ TITLE_ART = f"""
 ██████╗ ███████╗███████╗██╗  ██╗███████╗ ██████╗██████╗ ██╗██████╗ ████████╗
 ██╔══██╗██╔════╝██╔════╝╚██╗██╔╝██╔════╝██╔════╝██╔══██╗██║██╔══██╗╚══██╔══╝
 ██║  ██║█████╗  ███████╗ ╚███╔╝ ███████╗██║     ██████╔╝██║██████╔╝   ██║   
-██║  ██║██╔══╝  ╚════██║ ██╔██╗ ╚════██║██║     ██══██╗██║██╔═══╝    ██║   
+██║  ██║██╔══╝  ╚════██║ ██╔██╗ ╚════██║██║     ██══██╗ ██║██╔═══╝    ██║   
 ██████╔╝███████╗███████║██╔╝ ██╗███████║╚██████╗██║  ██║██║██║        ██║   
 ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝╚═╝        ╚═╝   
 {Colors.RESET}{Colors.CYAN}{'versi 12.3.24'.center(88)}
-{'dibuat oleh rkhnatthaya'.center(88)}{Colors.RESET}
+{'dibuat oleh rkhnatthyascrpter'.center(88)}{Colors.RESET}
 """
 
 # --- ANIMASI MATRIX ---
@@ -123,26 +123,37 @@ validate_not_empty = lambda s: len(s.strip()) > 0
 validate_bssid = lambda b: len(b) == 17 and b.count(':') == 5
 
 def bytes_to_gb(b): return f"{b / (1024**3):.2f} GB"
+def bytes_to_mb(b): return f"{b / (1024**2):.2f} MB"
 
 def animated_text(text):
     for char in text: sys.stdout.write(char); sys.stdout.flush(); time.sleep(0.03)
     print()
 
-# --- HELPER & SIMULASI PROSES ---
+# --- PERPUSTAKAAN SIMULASI ---
 STEP_LIBRARY = {
-    'INIT': ["Menginisialisasi koneksi", "Memverifikasi target", "Memuat payload primer", "Mengautentikasi sesi", "Menyiapkan environment", "Membaca konfigurasi", "Resolving domain ke IP"],
-    'SCAN': ["Memindai port terbuka", "Mencari kerentanan umum", "Enumerasi subdomain", "Mendeteksi versi layanan", "Memeriksa header HTTP", "Mencari file sensitif", "Mendeteksi proteksi CDN"],
-    'EXPLOIT': ["Mengeksploitasi buffer overflow", "Mengirim paket berbahaya", "Mem-bypass firewall", "Menginjeksi SQL payload", "Mencoba XSS payload", "Mendapatkan remote shell", "Membanjiri server dengan request HTTP"],
-    'DATA': ["Mengekstrak hash password", "Mendekripsi file konfigurasi", "Mengompresi log server", "Mencari data kredensial", "Mengunduh database", "Menganalisis traffic jaringan"],
-    'CLEANUP': ["Menghapus jejak dari log", "Memutus koneksi aman", "Mengembalikan state sistem", "Menghapus file sementara", "Mematikan remote shell"],
-    'GAME': ["Mencari process ID game", "Menginjeksi DLL ke memori", "Mem-bypass anti-cheat", "Hooking ke renderer D3D11", "Mencari pointer statis ammo", "Mengunci nilai memori"],
-    'WIFI': ["Mengaktifkan mode monitor", "Menunggu WPA2 handshake", "Mengirim paket Deauth", "Memulai dictionary attack", "Mengeksploitasi WPS Pixie Dust", "Mendapatkan PSK dari AP"]
+    'GENERIC_INIT': ["Menginisialisasi koneksi", "Memverifikasi target", "Memuat payload primer"],
+    'GENERIC_SCAN': ["Memindai port terbuka", "Mencari kerentanan umum", "Enumerasi subdomain"],
+    'GENERIC_EXPLOIT': ["Mengeksploitasi buffer overflow", "Mengirim paket berbahaya", "Mem-bypass firewall"],
+    'GENERIC_CLEANUP': ["Menghapus jejak dari log", "Memutus koneksi aman", "Menghapus file sementara"],
+    
+    'BOT_INIT': ["Menghubungkan ke API target", "Membuat sesi pengguna", "Mengenkripsi request API"],
+    'BOT_EXPLOIT': ["Mengirim paket data followers", "Memverifikasi pengiriman", "Menghindari deteksi rate limit", "Menggunakan endpoint pribadi"],
+    
+    'WEB_SCAN': ["Mendeteksi versi CMS", "Memindai direktori umum", "Mencari file backup", "Memeriksa konfigurasi server", "Mencari celah XSS", "Menguji injeksi SQL"],
+    'WEB_EXPLOIT': ["Mendapatkan shell via LFI", "Mengunggah shell PHP", "Mengeksploitasi SQL Injection", "Bypass filter upload"],
+    'WEB_DATA': ["Membaca file /etc/passwd", "Melakukan dump database", "Mencari file wp-config.php"],
+
+    'DB_SCAN': ["Memindai port SQL (1433, 3306)", "Mencari informasi versi DB", "Menguji kredensial default"],
+    'DB_EXPLOIT': ["Mencoba brute-force password", "Mengeksploitasi CVE-2024-DB01", "Injeksi perintah via xp_cmdshell"],
+    
+    'CRACK_DATA': ["Memuat file hash", "Menganalisis tipe hash", "Memuat daftar kata (rockyou.txt)", "Memulai serangan dictionary", "Mencoba serangan brute-force", "Menggunakan rainbow tables"],
 }
 DELAY_MESSAGES = {
-    'GENERIC': ["LATENSI TINGGI...", "MENSTABILKAN KONEKSI...", "MENUNGGU RESPON...", "MEMPROSES DATA..."],
-    'SCAN': ["TARGET MENGGANTI IP...", "WAF TERDETEKSI, MENCARI JALUR LAIN...", "RESPON TIDAK DIHARAPKAN...", "MEMPERLAMBAT SCAN UNTUK MENGHINDARI DETEKSI..."],
-    'EXPLOIT': ["PAYLOAD DITOLAK...", "SISTEM KEAMANAN AKTIF...", "MENGKALIBRASI ULANG PAYLOAD...", "MENCARI ALAMAT MEMORI BARU..."],
-    'DATA': ["DEKRIPSI GAGAL, MENCOBA KUNCI LAIN...", "KONEKSI DATABASE TERPUTUS...", "INTEGRITAS DATA KORUP...", "TRANSFER DATA LAMBAT..."]
+    'GENERIC': ["LATENSI TINGGI...", "MENSTABILKAN KONEKSI...", "MENUNGGU RESPON..."],
+    'BOT': ["API MERESPON DENGAN LAMBAT...", "SESI TERDETEKSI, MEMBUAT ULANG...", "RATE LIMIT TERCAPAI, MENUNGGU...", "CAPTCHA TERDETEKSI, MENCOBA BYPASS..."],
+    'WEB': ["WAF TERDETEKSI, MENCARI JALUR LAIN...", "RESPON TIDAK DIHARAPKAN...", "MEMPERLAMBAT SCAN UNTUK MENGHINDARI DETEKSI..."],
+    'DB': ["FIREWALL MEMBLOKIR KONEKSI...", "KREDENSIAL SALAH, MENCOBA KOMBINASI LAIN...", "KONEKSI DATABASE TERPUTUS..."],
+    'CRACK': ["HASH TIDAK DIKENALI...", "PROSES GPU LAMBAT...", "MEMORI HAMPIR PENUH..."]
 }
 
 def generate_steps(categories):
@@ -150,7 +161,7 @@ def generate_steps(categories):
     for category, count in categories:
         choices = random.choices(STEP_LIBRARY[category], k=count) if count > len(STEP_LIBRARY[category]) else random.sample(STEP_LIBRARY[category], k=count)
         for choice in choices:
-            all_steps.append((random.uniform(0.8, 2.5), choice, category))
+            all_steps.append((random.uniform(0.8, 2.5), choice, category.split('_')[0]))
     return all_steps
 
 def run_simulation_steps(steps_config):
@@ -167,7 +178,7 @@ def run_simulation_steps(steps_config):
             if elapsed >= duration:
                 progress = 100
                 bar = '█' * 50
-                sys.stdout.write(f"\r{Colors.GREEN}✓ {text}... [{Colors.GREEN}{bar}{Colors.RESET}] {progress}%{Colors.RESET}{' ' * 10}\n")
+                sys.stdout.write(f"\r{Colors.GREEN}✓ {text}... [{Colors.GREEN}{bar}{Colors.RESET}] {progress}%{Colors.RESET}{' ' * 20}\n")
                 sys.stdout.flush()
                 break
             
@@ -197,7 +208,7 @@ def run_simulation_steps(steps_config):
             sys.stdout.write(f"\r{Colors.CYAN}{spin_char} {text}... [{Colors.GREEN}{bar}{Colors.RESET}] {progress}% ")
             sys.stdout.flush()
             time.sleep(tick_speed)
-        time.sleep(0.3)
+        time.sleep(0.2)
 
 # --- FUNGSI HASIL AKHIR ---
 def display_final_output(script_name, target_info):
@@ -237,57 +248,57 @@ def simulate_bot_follower(script_name):
     clear_screen(); print(f"{Colors.YELLOW}[*] {script_name}...{Colors.RESET}\n")
     target = get_validated_input(f"{Colors.WHITE}Username Target: {Colors.RESET}", validate_username, "Format salah!")
     count = get_validated_input(f"{Colors.WHITE}Jumlah Followers: {Colors.RESET}", validate_number, "Jumlah tidak valid!")
-    print("-" * 50); run_simulation_steps([('INIT', 3), ('EXPLOIT', 4), ('CLEANUP', 1)])
+    print("-" * 50); run_simulation_steps([('BOT_INIT', 3), ('BOT_EXPLOIT', 4), ('GENERIC_CLEANUP', 1)])
     display_final_output(script_name, {'target': target, 'count': count})
 
 def simulate_web_deface(script_name):
     clear_screen(); print(f"{Colors.YELLOW}[*] {script_name}...{Colors.RESET}\n")
     target = get_validated_input(f"{Colors.WHITE}URL Target: {Colors.RESET}", validate_url, "Format URL salah!")
-    print("-" * 50); run_simulation_steps([('INIT', 4), ('SCAN', 20), ('EXPLOIT', 15), ('DATA', 3), ('CLEANUP', 3)])
+    print("-" * 50); run_simulation_steps([('GENERIC_INIT', 2), ('WEB_SCAN', 15), ('WEB_EXPLOIT', 10), ('WEB_DATA', 3), ('GENERIC_CLEANUP', 3)])
     display_final_output(script_name, {'target': target})
 
 def simulate_ddos_ip(script_name):
     clear_screen(); print(f"{Colors.YELLOW}[*] {script_name} (IP Attack)...{Colors.RESET}\n")
     get_validated_input(f"{Colors.WHITE}Target IP Address: {Colors.RESET}", validate_ip, "Format IP salah!")
     get_validated_input(f"{Colors.WHITE}Target Port: {Colors.RESET}", validate_number, "Port tidak valid!")
-    print("-" * 50); run_simulation_steps([('INIT', 10), ('EXPLOIT', 60)])
+    print("-" * 50); run_simulation_steps([('GENERIC_INIT', 10), ('GENERIC_EXPLOIT', 60)])
     animated_text(f"\n{Colors.GREEN}{Colors.BOLD}[+] SERANGAN LAYER 4 DIMULAI!{Colors.RESET}")
 
 def simulate_ddos_website(script_name):
     clear_screen(); print(f"{Colors.YELLOW}[*] {script_name} (Website Attack)...{Colors.RESET}\n")
     target = get_validated_input(f"{Colors.WHITE}URL Target Website: {Colors.RESET}", validate_url, "Format URL salah!")
-    print("-" * 50); run_simulation_steps([('INIT', 5), ('SCAN', 10), ('EXPLOIT', 50), ('CLEANUP', 1)])
+    print("-" * 50); run_simulation_steps([('GENERIC_INIT', 5), ('WEB_SCAN', 10), ('GENERIC_EXPLOIT', 50), ('GENERIC_CLEANUP', 1)])
     animated_text(f"\n{Colors.GREEN}{Colors.BOLD}[+] SERANGAN LAYER 7 DIMULAI! Website target diperkirakan akan lumpuh.{Colors.RESET}")
     
 def simulate_wifi_hack(script_name):
     clear_screen(); print(f"{Colors.YELLOW}[*] {script_name}...{Colors.RESET}\n")
     target = get_validated_input(f"{Colors.WHITE}Target BSSID: {Colors.RESET}", validate_bssid, "Format BSSID salah!")
-    print("-" * 50); run_simulation_steps([('INIT', 2), ('WIFI', 30), ('DATA', 5), ('CLEANUP', 1)])
+    print("-" * 50); run_simulation_steps([('WIFI', 30), ('GENERIC_CLEANUP', 1)])
     display_final_output(script_name, {'target': target, 'password': 'Password12345'})
 
 def simulate_game_hack(script_name):
     clear_screen(); print(f"{Colors.YELLOW}[*] {script_name}...{Colors.RESET}\n")
     get_validated_input(f"{Colors.WHITE}Game Process Name: {Colors.RESET}", validate_process_name, "Format salah!")
-    print("-" * 50); run_simulation_steps([('INIT', 2), ('GAME', 15), ('CLEANUP', 2)])
+    print("-" * 50); run_simulation_steps([('GAME', 15), ('GENERIC_CLEANUP', 2)])
     animated_text(f"\n{Colors.GREEN}{Colors.BOLD}[+] SUKSES! Cheat diaktifkan.{Colors.RESET}")
 
 def simulate_database_access(script_name):
     clear_screen(); print(f"{Colors.YELLOW}[*] {script_name}...{Colors.RESET}\n")
     target = get_validated_input(f"{Colors.WHITE}Target IP/Domain Database: {Colors.RESET}", validate_not_empty, "Target tidak boleh kosong!")
-    print("-" * 50); run_simulation_steps([('INIT', 5), ('SCAN', 10), ('EXPLOIT', 12), ('DATA', 8), ('CLEANUP', 2)])
+    print("-" * 50); run_simulation_steps([('GENERIC_INIT', 3), ('DB_SCAN', 10), ('DB_EXPLOIT', 12), ('WEB_DATA', 8), ('GENERIC_CLEANUP', 2)])
     display_final_output(script_name, {'target': target})
 
 def simulate_password_cracker(script_name):
     clear_screen(); print(f"{Colors.YELLOW}[*] {script_name}...{Colors.RESET}\n")
     target = get_validated_input(f"{Colors.WHITE}Target File Hash (.txt): {Colors.RESET}", validate_not_empty, "Target tidak boleh kosong!")
-    print("-" * 50); run_simulation_steps([('INIT', 2), ('DATA', 40), ('CLEANUP', 1)])
+    print("-" * 50); run_simulation_steps([('GENERIC_INIT', 2), ('CRACK_DATA', 40), ('GENERIC_CLEANUP', 1)])
     display_final_output(script_name, {'target': target})
     
 def simulate_generic_script(script_name):
     clear_screen(); print(f"{Colors.YELLOW}[*] {script_name}...{Colors.RESET}\n")
     target = input(f"{Colors.WHITE}Masukkan Target (IP/Domain/User): {Colors.RESET}")
     total_steps = random.randint(10, 80)
-    print("-" * 50); run_simulation_steps([(random.choice(['INIT', 'SCAN', 'EXPLOIT', 'DATA']), total_steps)])
+    print("-" * 50); run_simulation_steps([(random.choice(['GENERIC_INIT', 'GENERIC_SCAN', 'GENERIC_EXPLOIT']), total_steps)])
     display_final_output(script_name, {'target': target})
 
 # --- DATA UNTUK SCRIPT & OPSI-OPSINYA ---
@@ -351,7 +362,6 @@ def display_menu():
     return menu_items
     
 def main():
-    # --- PERBAIKAN: Pindahkan semua fungsi helper info sistem ke sini agar tidak ada NameError ---
     def get_os_details(uname):
         system = uname.system
         if system == "Windows": return f"Windows {uname.release}"
@@ -387,30 +397,108 @@ def main():
             lines.append(line)
         return "\n".join(lines)
 
+    def get_system_manufacturer():
+        system = platform.system()
+        try:
+            if system == "Windows":
+                return wmi.WMI().Win32_ComputerSystem()[0].Manufacturer.strip()
+            elif system == "Linux":
+                with open("/sys/class/dmi/id/sys_vendor") as f:
+                    return f.read().strip()
+            elif system == "Darwin":
+                return "Apple Inc."
+        except Exception:
+            return "Tidak Terdeteksi"
+        return "Tidak Diketahui"
+
+    def get_gpu_info():
+        system = platform.system()
+        try:
+            if system == "Windows":
+                gpu = wmi.WMI().Win32_VideoController()[0]
+                return {
+                    "Nama": gpu.Name,
+                    "VRAM": f"{int(gpu.AdapterRAM) / (1024**2):.0f} MB",
+                    "Vendor": gpu.AdapterCompatibility,
+                }
+            elif system == "Darwin":
+                data = subprocess.check_output(['system_profiler', 'SPDisplaysDataType']).decode()
+                name = "N/A"; vram = "N/A"; vendor = "N/A"
+                for line in data.split('\n'):
+                    if "Chipset Model:" in line: name = line.split(":")[1].strip()
+                    if "VRAM (Total):" in line: vram = line.split(":")[1].strip().split(" ")[0] + " MB"
+                    if "Vendor:" in line: vendor = line.split(":")[1].strip().split(" ")[0]
+                return {"Nama": name, "VRAM": vram, "Vendor": vendor}
+            elif system == "Linux":
+                data = subprocess.check_output(['glxinfo', '-B']).decode()
+                name = "N/A"; vendor = "N/A"
+                for line in data.split('\n'):
+                    if "Device:" in line: name = line.split(":")[1].strip().split(" (")[0]
+                    if "OpenGL vendor string:" in line: vendor = line.split(":")[1].strip()
+                return {"Nama": name, "VRAM": "N/A", "Vendor": vendor}
+        except Exception:
+            return {"Nama": "Tidak Terdeteksi", "VRAM": "N/A", "Vendor": "N/A"}
+        return {}
+        
     def display_system_info_screen():
         try:
             uname = platform.uname(); cpu_info_data = cpuinfo.get_cpu_info()
             os_details = get_os_details(uname); partitions = psutil.disk_partitions()
+            manufacturer = get_system_manufacturer()
+            gpu_info = get_gpu_info()
+            
             while True:
                 output_buffer = []
                 svmem = psutil.virtual_memory(); swap = psutil.swap_memory()
                 boot_time = timedelta(seconds=int(time.time() - psutil.boot_time()))
                 cpu_percents = psutil.cpu_percent(percpu=True, interval=0.1)
-                device_os = [("Pabrikan", cpu_info_data.get('vendor_id_raw', 'N/A')), ("Model Internal", uname.node), ("Versi OS", os_details), ("Arsitektur", cpu_info_data.get('arch', 'N/A')), ("Versi Kernel", uname.release), ("Waktu Aktif (Uptime)", str(boot_time))]
-                cpu_data = [("Nama Chipset", cpu_info_data.get('brand_raw', 'N/A')), ("Core Fisik", psutil.cpu_count(logical=False)), ("Total Core", psutil.cpu_count(logical=True)), ("L2 Cache", f"{cpu_info_data.get('l2_cache_size', 0) // 1024} KB"), ("L3 Cache", f"{cpu_info_data.get('l3_cache_size', 0) // 1024} KB"), ("Fitur", ', '.join([f for f in ['aes', 'sha'] if f in cpu_info_data.get('flags', [])]))]
+                net_io = psutil.net_io_counters()
+                
+                battery_data = []
+                try:
+                    battery = psutil.sensors_battery()
+                    if battery:
+                        status = "Mengisi Daya" if battery.power_plugged else "Tidak Mengisi"
+                        sisa_waktu = "Menghitung..."
+                        health = "Tidak Tersedia"
+                        if not battery.power_plugged and battery.secsleft != psutil.POWER_TIME_UNLIMITED:
+                           sisa_waktu = str(timedelta(seconds=battery.secsleft))
+                        
+                        # Coba dapatkan kesehatan baterai
+                        if platform.system() == "Windows":
+                            b = wmi.WMI().Win32_Battery()[0]
+                            health = f"{(b.FullChargedCapacity / b.DesignCapacity) * 100:.0f}%" if b.DesignCapacity > 0 else "N/A"
+                        elif platform.system() == "Darwin":
+                            out = subprocess.check_output(['ioreg', '-r', '-c', 'AppleSmartBattery']).decode()
+                            for line in out.splitlines():
+                                if '"MaxCapacity" = ' in line: max_cap = int(line.split('=')[1].strip())
+                                if '"CurrentCapacity" = ' in line: cur_cap = int(line.split('=')[1].strip())
+                            health = f"{(cur_cap / max_cap) * 100:.0f}%" if max_cap > 0 else "N/A"
+
+                        battery_data = [
+                            ("Persentase", f"{battery.percent}%"), ("Status", status),
+                            ("Sisa Waktu", sisa_waktu), ("Kesehatan", health)
+                        ]
+                    else:
+                        battery_data = [("Status", "Tidak ada baterai terdeteksi")]
+                except Exception:
+                     battery_data = [("Status", "Tidak dapat membaca info baterai")]
+                
+                device_os = [("Pabrikan", manufacturer), ("Model Internal", uname.node), ("Versi OS", os_details), ("Arsitektur", cpu_info_data.get('arch', 'N/A')), ("Versi Kernel", uname.release), ("Waktu Aktif", str(boot_time))]
+                cpu_data = [("Nama Chipset", cpu_info_data.get('brand_raw', 'N/A')), ("Core Fisik", psutil.cpu_count(logical=False)), ("Total Core", psutil.cpu_count(logical=True)), ("Stepping", cpu_info_data.get('stepping', 'N/A')), ("Model", cpu_info_data.get('model', 'N/A')), ("Family", cpu_info_data.get('family', 'N/A'))]
+                gpu_data_list = [("Nama GPU", gpu_info.get("Nama")), ("VRAM", gpu_info.get("VRAM")), ("Vendor", gpu_info.get("Vendor"))]
                 mem_data = [("Total RAM", bytes_to_gb(svmem.total)), ("RAM Tersedia", bytes_to_gb(svmem.available)), ("RAM Terpakai", f"{bytes_to_gb(svmem.used)} ({svmem.percent}%)"), ("Total Swap", bytes_to_gb(swap.total)), ("Swap Terpakai", f"{bytes_to_gb(swap.used)} ({swap.percent}%)")]
-                unavail_mobile = [("Nama Pemasaran", "[Data Ponsel]"), ("Kode Perangkat", "[Data Ponsel]"), ("Level Patch Keamanan", "[Data Ponsel]"), ("Versi Baseband", "[Data Ponsel]")]
+                net_data = [("Data Terkirim", bytes_to_mb(net_io.bytes_sent)), ("Data Diterima", bytes_to_mb(net_io.bytes_recv))]
+
                 output_buffer.append(f"{Colors.BOLD}{Colors.MAGENTA}--- Perangkat & OS ---{Colors.RESET}\n{format_info(device_os, 2)}")
                 output_buffer.append(f"\n{Colors.BOLD}{Colors.MAGENTA}--- CPU ---{Colors.RESET}\n{format_info(cpu_data, 2)}")
                 cpu_bars = [f"    {Colors.WHITE}Core {i}  [{Colors.GREEN}{'█' * int(p / 10)}{' ' * (10 - int(p / 10))}{Colors.RESET}] {p:5.1f}%{Colors.RESET}" for i, p in enumerate(cpu_percents)]
                 output_buffer.append("\n".join(cpu_bars))
+                output_buffer.append(f"\n{Colors.BOLD}{Colors.MAGENTA}--- GPU / Display ---{Colors.RESET}\n{format_info(gpu_data_list, 2)}")
                 output_buffer.append(f"\n{Colors.BOLD}{Colors.MAGENTA}--- Memori ---{Colors.RESET}\n{format_info(mem_data, 2)}")
-                storage_buffer = [f"\n{Colors.BOLD}{Colors.MAGENTA}--- Penyimpanan ---{Colors.RESET}"]
-                for p in partitions:
-                    try: storage_buffer.append(f"  {Colors.WHITE}{p.device} @ {p.mountpoint}{Colors.RESET} | {Colors.GRAY}Total: {bytes_to_gb(psutil.disk_usage(p.mountpoint).total)}, Terpakai: {bytes_to_gb(psutil.disk_usage(p.mountpoint).used)} ({psutil.disk_usage(p.mountpoint).percent}%){Colors.RESET}")
-                    except (PermissionError, FileNotFoundError): continue
-                output_buffer.append("\n".join(storage_buffer))
-                output_buffer.append(f"\n{Colors.BOLD}{Colors.MAGENTA}--- Informasi Lain (Spesifik Ponsel) ---{Colors.RESET}\n{format_info(unavail_mobile, 2)}")
+                output_buffer.append(f"\n{Colors.BOLD}{Colors.MAGENTA}--- Baterai ---{Colors.RESET}\n{format_info(battery_data, 2)}")
+                output_buffer.append(f"\n{Colors.BOLD}{Colors.MAGENTA}--- Jaringan ---{Colors.RESET}\n{format_info(net_data, 2)}")
+                
                 output_buffer.append(f"\n{Colors.GRAY}Dashboard refresh otomatis. Tekan [Ctrl+C] untuk kembali...{Colors.RESET}")
                 clear_screen()
                 print("\n".join(output_buffer))
@@ -470,4 +558,3 @@ if __name__ == "__main__":
     if platform.system() == "Windows": import wmi
     
     main()
-
