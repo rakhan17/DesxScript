@@ -13,6 +13,8 @@ import string
 import hashlib
 import base64
 import binascii
+import json
+import shutil
 
 # --- DEPENDENCY CHECK AND INSTALLATION ---
 def check_and_install_dependencies(missing_packages):
@@ -57,6 +59,7 @@ COLOR_PALETTE = [Colors.RED, Colors.GREEN, Colors.YELLOW, Colors.BLUE, Colors.MA
 
 def get_title_art():
     color = random.choice(COLOR_PALETTE)
+    # Updated version number
     return f"""{color}{Colors.BOLD}
 ██████╗ ███████╗███████╗██╗  ██╗███████╗ ██████╗██████╗ ██╗██████╗ ████████╗
 ██╔══██╗██╔════╝██╔════╝╚██╗██╔╝██╔════╝██╔════╝██╔══██╗██║██╔══██╗╚══██╔══╝
@@ -64,7 +67,7 @@ def get_title_art():
 ██║  ██║██╔══╝  ╚════██║ ██╔██╗ ╚════██║██║     ██══██╗██║██╔═══╝    ██║   
 ██████╔╝███████╗███████║██╔╝ ██╗███████║╚██████╗██║  ██║██║██║        ██║   
 ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝╚═╝        ╚═╝   
-{Colors.RESET}{Colors.CYAN}{'DesxScript Ultimate Toolkit v7.0'.center(88)}
+{Colors.RESET}{Colors.CYAN}{'DesxScript Ultimate Toolkit v7.1'.center(88)}
 {'created by rkhnatthyascrpter'.center(88)}{Colors.RESET}
 """
 
@@ -135,7 +138,7 @@ def run_simulation_steps(steps_config):
                     sys.stdout.write(f"\r{Colors.YELLOW}> {text}... [{Colors.GREEN}{bar}{Colors.RESET}] {event['percent']}% ")
                     sys.stdout.flush()
                     if not event['silent']:
-                        possible_messages = DELAY_MESSAGES.get(category, ["GENERIC DELAY..."])
+                        possible_messages = DELAY_MESSAGES.get(category.upper(), ["GENERIC DELAY..."])
                         sys.stdout.write(f"\n{Colors.YELLOW}[!] {random.choice(possible_messages)}{Colors.RESET}")
                         sys.stdout.flush()
                     time.sleep(event['duration'])
@@ -476,14 +479,16 @@ def main():
 
     def format_info(data):
         if not data: return ""
-        max_len = max(len(key) for key, val in data if key) + 2
+        # Filter out None values before calculating max_len
+        valid_data = [(k, v) for k, v in data if k is not None]
+        if not valid_data: return ""
+
+        max_len = max(len(key) for key, val in valid_data) + 2
         lines = []
-        # Split data into two columns
         mid_point = (len(data) + 1) // 2
         col1 = data[:mid_point]
         col2 = data[mid_point:]
         
-        # Make columns equal length for zipping
         while len(col1) > len(col2): col2.append((None, None))
         while len(col2) > len(col1): col1.append((None, None))
 
@@ -498,29 +503,75 @@ def main():
 
     def display_system_info_screen():
         try:
-            uname = platform.uname(); cpu_info_data = cpuinfo.get_cpu_info()
+            uname = platform.uname()
+            cpu_info_data = cpuinfo.get_cpu_info()
             os_details = get_os_details(uname)
             while True:
-                output_buffer = []
-                svmem = psutil.virtual_memory(); swap = psutil.swap_memory()
+                # Basic Info
+                device_os = [
+                    ("OS Version", os_details), ("Internal Model", uname.node), 
+                    ("Architecture", cpu_info_data.get('arch_string_raw', 'N/A')), 
+                    ("Kernel Version", uname.release), 
+                    ("Build ID", uname.version.split(' ')[0])
+                ]
+                
+                # Uptime and CPU
                 boot_time = timedelta(seconds=int(time.time() - psutil.boot_time()))
                 cpu_percents = psutil.cpu_percent(percpu=True, interval=0.1)
+                cpu_data = [
+                    ("Uptime", str(boot_time)),
+                    ("Chipset Name", cpu_info_data.get('brand_raw', 'N/A')),
+                    ("Physical Cores", psutil.cpu_count(logical=False)), 
+                    ("Total Cores", psutil.cpu_count(logical=True)),
+                    ("L2 Cache", f"{cpu_info_data.get('l2_cache_size', 0) // 1024} KB"), 
+                    ("L3 Cache", f"{cpu_info_data.get('l3_cache_size', 0) // 1024} KB")
+                ]
                 
-                device_os = [("OS Version", os_details), ("Internal Model", uname.node), ("Architecture", cpu_info_data.get('arch', 'N/A')), ("Uptime", str(boot_time)), ("Kernel Version", uname.release), ("Build ID", uname.version.split(' ')[0])]
-                cpu_data = [("Chipset Name", cpu_info_data.get('brand_raw', 'N/A')), ("Physical Cores", psutil.cpu_count(logical=False)), ("Total Cores", psutil.cpu_count(logical=True)), ("L2 Cache", f"{cpu_info_data.get('l2_cache_size', 0) // 1024} KB"), ("L3 Cache", f"{cpu_info_data.get('l3_cache_size', 0) // 1024} KB"), ("Features", ', '.join([f for f in ['aes', 'sha'] if f in cpu_info_data.get('flags', [])]))]
-                mem_data = [("Total RAM", f"{svmem.total / (1024**3):.2f} GB"), ("Available RAM", f"{svmem.available / (1024**3):.2f} GB"), ("Used RAM", f"{svmem.used / (1024**3):.2f} GB ({svmem.percent}%)"), ("Total Swap", f"{swap.total / (1024**3):.2f} GB"), ("Used Swap", f"{swap.used / (1024**3):.2f} GB ({swap.percent}%)")]
-                mobile_data = [("Marketing Name", "[Mobile Data Only]"), ("Device Code", "[Mobile Data Only]"),("OS Codename", "[Mobile Data Only]"),("Security Patch", "[Mobile Data Only]"),("Root/Jailbreak", "[Mobile Data Only]"),("Thermal Throttling", "[Mobile Data Only]"),("Chipset Mfg.", "[Mobile Data Only]"),("CPU Governor", "[Mobile Data Only]"),("RAM Type", "[Mobile Data Only]"),("Memory Bandwidth", "[Mobile Data Only]"),("Storage Type", "[Mobile Data Only]"),("Sequential Read", "[Mobile Data Only]"),("Sequential Write", "[Mobile Data Only]"),("Bootloader Ver.", "[Mobile Data Only]"),("Baseband Ver.", "[Mobile Data Only]"),("Storage Encryption", "[Mobile Data Only]"),("Security Platform", "[Mobile Data Only]"),("Biometric Type", "[Mobile Data Only]"),("Widevine DRM", "[Mobile Data Only]"),("Wi-Fi Standard", "[Mobile Data Only]"),("IMEI", "[Mobile Data Only]"),("ICCID", "[Mobile Data Only]"),("IMSI", "[Mobile Data Only]"),("Network Operator", "[Mobile Data Only]"),("GNSS Constellation", "[Mobile Data Only]"),("Bluetooth Codecs", "[Mobile Data Only]"),("NFC Status", "[Mobile Data Only]"),("USB Version", "[Mobile Data Only]"),("Screen Resolution", "[Mobile Data Only]"),("Screen Panel", "[Mobile Data Only]"),("Refresh Rate", "[Mobile Data Only]"),("HDR Support", "[Mobile Data Only]"),("Audio Chip", "[Mobile Data Only]"),("Speaker Config", "[Mobile Data Only]"),("Camera Sensor", "[Mobile Data Only]"),("Battery Tech", "[Mobile Data Only]"),("Charge Cycles", "[Mobile Data Only]"),("Max Charge Wattage", "[Mobile Data Only]"),("Accelerometer", "[Mobile Data Only]"),("Gyroscope", "[Mobile Data Only]"),("Magnetometer", "[Mobile Data Only]")]
-                
+                # Memory
+                svmem = psutil.virtual_memory()
+                swap = psutil.swap_memory()
+                mem_data = [
+                    ("Total RAM", f"{svmem.total / (1024**3):.2f} GB"), 
+                    ("Available RAM", f"{svmem.available / (1024**3):.2f} GB"),
+                    ("Used RAM", f"{svmem.used / (1024**3):.2f} GB ({svmem.percent}%)"), 
+                    ("Total Swap", f"{swap.total / (1024**3):.2f} GB"), 
+                    ("Used Swap", f"{swap.used / (1024**3):.2f} GB ({swap.percent}%)")
+                ]
+
+                # --- NEW: Battery Information ---
+                battery_data = []
+                battery = psutil.sensors_battery()
+                if battery:
+                    power_plugged = "Plugged In" if battery.power_plugged else "Not Plugged"
+                    
+                    # Estimate health based on full capacity vs design capacity if possible
+                    # This is a very rough estimation.
+                    health = "Good" # Default
+                    
+                    battery_data.extend([
+                        ("Percentage", f"{battery.percent}%"),
+                        ("Status", power_plugged),
+                        ("Health", health),
+                    ])
+                    if battery.secsleft != psutil.POWER_TIME_UNLIMITED and not battery.power_plugged:
+                        battery_data.append(("Time Left", str(timedelta(seconds=battery.secsleft))))
+                else:
+                    battery_data.append(("Status", "Not Detected"))
+
                 clear_screen()
                 print(f"{Colors.BOLD}{Colors.MAGENTA}--- Device & OS ---{Colors.RESET}\n{format_info(device_os)}")
                 print(f"\n{Colors.BOLD}{Colors.MAGENTA}--- CPU ---{Colors.RESET}\n{format_info(cpu_data)}")
                 cpu_bars = [f"  {Colors.WHITE}Core {i}  [{Colors.GREEN}{'█' * int(p / 10)}{' ' * (10 - int(p / 10))}{Colors.RESET}] {p:5.1f}%{Colors.RESET}" for i, p in enumerate(cpu_percents)]
                 print("\n".join(cpu_bars))
                 print(f"\n{Colors.BOLD}{Colors.MAGENTA}--- Memory ---{Colors.RESET}\n{format_info(mem_data)}")
-                print(f"\n{Colors.BOLD}{Colors.MAGENTA}--- Mobile-Specific Info (Not Applicable on PC) ---{Colors.RESET}\n{format_info(mobile_data)}")
+                # Display battery info if available
+                if battery_data:
+                    print(f"\n{Colors.BOLD}{Colors.MAGENTA}--- Battery ---{Colors.RESET}\n{format_info(battery_data)}")
+
                 print(f"\n{Colors.GRAY}Dashboard is refreshing. Press [Ctrl+C] to return...{Colors.RESET}")
                 time.sleep(2)
-        except KeyboardInterrupt: return
+        except KeyboardInterrupt:
+            return
         except Exception as e:
             clear_screen()
             print(f"\n{Colors.RED}An error occurred while fetching system info: {e}{Colors.RESET}")
@@ -536,10 +587,11 @@ def main():
             time.sleep(2)
 
     def run_sandboxed_terminal():
+        # This terminal remains sandboxed for safety. It cannot interact with the local filesystem.
         fake_fs = {'~': {'type': 'dir', 'content': {
             'Documents': {'type': 'dir', 'content': {}},
             'Downloads': {'type': 'dir', 'content': {}},
-            'readme.txt': {'type': 'file', 'content': 'Welcome to the sandboxed terminal.'}
+            'readme.txt': {'type': 'file', 'content': 'Welcome to the sandboxed Desx Terminal.'}
         }}}
         current_path = ['~']
 
@@ -549,7 +601,9 @@ def main():
             return obj
 
         clear_screen()
-        print(f"{Colors.CYAN}Welcome to the Sandboxed Terminal. Type 'exit' to leave.{Colors.RESET}")
+        # Changed Terminal Name
+        print(f"{Colors.CYAN}Welcome to the Desx Terminal (Sandbox Mode). Type 'exit' to leave.{Colors.RESET}")
+        print(f"{Colors.YELLOW}NOTE: This is a simulated terminal. Commands do not affect your real system.{Colors.RESET}")
         while True:
             path_str = '/'.join(current_path)
             prompt = f"{Colors.GREEN}{path_str}{Colors.RESET}{Colors.WHITE}$ {Colors.RESET}"
@@ -592,6 +646,9 @@ def main():
                 current_dir = get_current_dir_obj()
                 if target in current_dir: del current_dir[target]
                 else: print(f"{Colors.RED}Error: File or directory not found: {target}{Colors.RESET}")
+            # The 'dsx' commands are not implemented for safety reasons.
+            elif cmd.startswith('dsx'):
+                print(f"{Colors.RED}Error: For security reasons, 'dsx' commands that modify local files are not available.{Colors.RESET}")
             else:
                 print(f"{Colors.RED}Command not found: {cmd}{Colors.RESET}")
 
@@ -637,7 +694,8 @@ def main():
         print("\n" + "="*80)
         
         print(f"\n{Colors.BOLD}{Colors.YELLOW}ACTIONS".center(90) + f"{Colors.RESET}"); print("="*80 + "\n")
-        action_items = [('a', "Sandboxed Terminal")]
+        # Changed Terminal Name
+        action_items = [('a', "Desx Terminal (Sandbox)")]
         action_line = "  "
         for key, name in action_items:
             action_line += f"[{Colors.CYAN}{key}{Colors.RESET}] {Colors.WHITE}{name.ljust(35)}{Colors.RESET}"
@@ -692,9 +750,15 @@ if __name__ == "__main__":
         pip_missing = [all_packages.get(m, m) for m in missing]
         check_and_install_dependencies(pip_missing)
     
-    import requests; from PIL import Image, ExifTags; from PIL.ExifTags import TAGS
-    import PyPDF2; from faker import Faker; from bs4 import BeautifulSoup
-    import whois; import psutil; import cpuinfo
+    import requests
+    from PIL import Image
+    from PIL.ExifTags import TAGS
+    import PyPDF2
+    from faker import Faker
+    from bs4 import BeautifulSoup
+    import whois
+    import psutil
+    import cpuinfo
     if platform.system() == "Windows": import wmi
 
     main()
