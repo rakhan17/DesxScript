@@ -71,10 +71,10 @@ def get_title_art():
 ██████╗ ███████╗███████╗██╗  ██╗███████╗ ██████╗██████╗ ██╗██████╗ ████████╗
 ██╔══██╗██╔════╝██╔════╝╚██╗██╔╝██╔════╝██╔════╝██╔══██╗██║██╔══██╗╚══██╔══╝
 ██║  ██║█████╗  ███████╗ ╚███╔╝ ███████╗██║     ██████╔╝██║██████╔╝   ██║   
-██║  ██║██╔══╝  ╚════██║ ██╔██╗ ╚════██║██║     ██══██╗██║██╔═══╝    ██║   
+██║  ██║██╔══╝  ╚════██║ ██╔██╗ ╚════██║██║     ██══██╗ ██║██╔═══╝    ██║   
 ██████╔╝███████╗███████║██╔╝ ██╗███████║╚██████╗██║  ██║██║██║        ██║   
 ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝╚═╝        ╚═╝   
-{Colors.RESET}{Colors.CYAN}{'DesxScript Ultimate Toolkit v8.2'.center(88)}
+{Colors.RESET}{Colors.CYAN}{'DesxScript Ultimate Toolkit v8.3'.center(88)}
 {'created by rkhnatthyascrpter'.center(88)}{Colors.RESET}
 """
 
@@ -1048,7 +1048,6 @@ def real_desx_gpt(script_name):
         print(f"{Colors.RED}Gemini API key is not configured correctly in the script.{Colors.RESET}")
         return
 
-    # Use a more reliable model name
     model_name = "gemini-1.5-flash-latest"
     api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
     
@@ -1066,7 +1065,7 @@ def real_desx_gpt(script_name):
     # Initialize conversation history with the system prompt
     conversation_history = [
         {'role': 'user', 'parts': [{'text': f"Please adopt the following persona for our conversation: {system_prompt}"}]},
-        {'role': 'model', 'parts': [{'text': "Understood. I am DesxGPT, an AI assistant within the DesxScript Ultimate Toolkit. How can I help you today?"}]}
+        {'role': 'model', 'parts': [{'text': "Understood. I am DesxGPT, an AI assistant within the DesxScript Ultimate Toolkit, created by Rakhan Atthaya. How can I help you today?"}]}
     ]
 
     print(f"{Colors.CYAN}Welcome to DesxGPT. I am an AI assistant ready to help.{Colors.RESET}")
@@ -1078,7 +1077,6 @@ def real_desx_gpt(script_name):
             print(f"\n{Colors.YELLOW}DesxGPT session ended.{Colors.RESET}")
             break
         
-        # Add user's message to history
         conversation_history.append({'role': 'user', 'parts': [{'text': prompt}]})
         
         payload = {'contents': conversation_history}
@@ -1087,26 +1085,29 @@ def real_desx_gpt(script_name):
             print(f"{Colors.GRAY}DesxGPT is thinking...{Colors.RESET}", end="\r")
             
             response = requests.post(api_url, headers=headers, data=json.dumps(payload), timeout=60)
-            response.raise_for_status() # Raise an exception for bad status codes
+            response.raise_for_status()
             
             response_data = response.json()
             
-            # Extract text and handle potential errors
             try:
                 ai_response_text = response_data['candidates'][0]['content']['parts'][0]['text']
-                # Add AI's response to history
                 conversation_history.append({'role': 'model', 'parts': [{'text': ai_response_text}]})
 
-                print(" " * 30, end="\r") # Clear thinking message
+                print(" " * 30, end="\r")
                 print(f"{Colors.CYAN}DesxGPT: {Colors.RESET}{ai_response_text}")
             except (KeyError, IndexError):
-                print(f"\n{Colors.RED}Could not parse the API response. Full response: {response_data}{Colors.RESET}")
+                error_info = response_data.get('error', {}).get('message', 'Could not parse API response.')
+                print(f"\n{Colors.RED}API Error: {error_info}{Colors.RESET}")
+                # Remove the last user message to avoid resending a faulty prompt
+                conversation_history.pop()
 
         except requests.exceptions.HTTPError as http_err:
              print(f"\n{Colors.RED}An HTTP error occurred: {http_err}{Colors.RESET}")
              print(f"{Colors.RED}Response Body: {response.text}{Colors.RESET}")
+             conversation_history.pop()
         except Exception as e:
             print(f"\n{Colors.RED}An unexpected error occurred: {e}{Colors.RESET}")
+            conversation_history.pop()
 
 # --- SYSTEM INFO HELPER FUNCTIONS ---
 def get_os_details(uname):
@@ -1268,21 +1269,19 @@ def main():
             print(line)
         print("\n" + "="*80)
         
-        # New section for special tools
-        print(f"\n{Colors.BOLD}{Colors.YELLOW}SPECIAL GENERATORS".center(90) + f"{Colors.RESET}"); print("="*80 + "\n")
+        print(f"\n{Colors.BOLD}{Colors.YELLOW}DesxTools".center(90) + f"{Colors.RESET}"); print("="*80 + "\n")
         print(f"  [{Colors.CYAN}C{Colors.RESET}] {Colors.WHITE}GitHub README Card Generator{Colors.RESET}")
         print(f"  [{Colors.CYAN}A{Colors.RESET}] {Colors.WHITE}DesxGPT AI{Colors.RESET}")
+        print(f"  [{Colors.CYAN}S{Colors.RESET}] {Colors.WHITE}System Info Dashboard{Colors.RESET}")
         print("\n" + "="*80)
 
 
     while True:
         display_main_menu()
         try:
-            choice = input(f"\n{Colors.YELLOW}Select an option, [S] for System Info, or [Q] to Quit: {Colors.RESET}").lower()
+            choice = input(f"\n{Colors.YELLOW}Select an option or [Q] to Quit: {Colors.RESET}").lower()
             if choice == 'q':
                 clear_screen(); print(f"\n{Colors.CYAN}{Colors.BOLD}Thank you for using DesxScript.{Colors.RESET}\n"); break
-            elif choice == 's':
-                display_system_info_screen(); continue
             elif choice == 'c':
                 real_readme_card_generator("GitHub README Card Generator")
                 input(f"\n{Colors.YELLOW}Press [Enter] to return to the main menu...{Colors.RESET}")
@@ -1290,6 +1289,9 @@ def main():
             elif choice == 'a':
                 real_desx_gpt("DesxGPT AI")
                 input(f"\n{Colors.YELLOW}Press [Enter] to return to the main menu...{Colors.RESET}")
+                continue
+            elif choice == 's':
+                display_system_info_screen()
                 continue
 
             choice_int = int(choice)
